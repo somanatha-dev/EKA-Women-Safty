@@ -1,4 +1,3 @@
-import React from 'react';
 import { MoreVertical, Plus } from 'lucide-react';
 
 export function ContactsView() {

@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function AccountView() {
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-500">

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bell, CheckCircle, Map, MapPin, Navigation, Activity, X } from 'lucide-react';
 
 import { RECENT_ALERTS } from '../data/alerts';

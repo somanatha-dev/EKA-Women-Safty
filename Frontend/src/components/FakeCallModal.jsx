@@ -1,4 +1,3 @@
-import React from 'react';
 import { Phone, PhoneOff } from 'lucide-react';
 
 export function FakeCallModal({ onClose }) {

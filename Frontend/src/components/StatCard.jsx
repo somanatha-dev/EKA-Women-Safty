@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function StatCard({ title, value, subValue, icon: Icon, color }) {
   const colorStyles = {
     red: {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { FakeCallModal } from './components/FakeCallModal';
 import { TopNav } from './components/TopNav';
