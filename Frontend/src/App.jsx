@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { FakeCallModal } from './components/modals/FakeCallModal.jsx';
+
 import { TopNav } from './components/topnav/TopNav.jsx';
 import { AccountView } from './pages/AccountView.jsx';
 import { ContactsView } from './pages/ContactsView.jsx';
@@ -29,8 +29,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* --- FULL SCREEN FAKE CALL MODAL --- */}
-      {showFakeCall && <FakeCallModal onClose={() => setShowFakeCall(false)} />}
+
     </div>
   );
 }

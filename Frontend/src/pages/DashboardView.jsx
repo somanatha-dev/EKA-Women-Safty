@@ -11,18 +11,16 @@ import {
 import { RECENT_ALERTS } from '../data/recentAlerts.js';
 import { StatCard } from '../components/ui/StatCard.jsx';
 
+import MapControl from '../features/maps/MapControl.jsx';
+
 export function DashboardView({ isCrowdShieldActive }) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div
         id="mapbox-container"
-        className="relative w-full h-[450px] rounded-2xl overflow-hidden shadow-premium bg-slate-100 border border-slate-200/60 flex items-center justify-center"
+        className="relative w-full h-[450px] rounded-2xl overflow-hidden shadow-premium bg-slate-100 border border-slate-200/60"
       >
-        <div className="text-center">
-          <Map size={48} className="mx-auto text-slate-300 mb-4" strokeWidth={1.5} />
-          <p className="text-slate-500 font-medium text-[15px]">Mapbox Integration Container</p>
-          <p className="text-slate-400 text-[13px] mt-1">Ready for Mapbox GL JS mount</p>
-        </div>
+        <MapControl />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
