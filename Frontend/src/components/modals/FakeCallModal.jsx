@@ -1,8 +1,28 @@
 import { Phone, PhoneOff } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 export function FakeCallModal({ onClose }) {
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    // Attempt to auto-play the audio when modal mounts
+    if (audioRef.current) {
+      audioRef.current.volume = 0.5;
+      audioRef.current.play().catch(err => console.log('Audio autoplay blocked by browser', err));
+    }
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-xl animate-in fade-in duration-300">
+      
+      {/* Hidden audio element for the ringtone */}
+      <audio 
+        ref={audioRef} 
+        loop 
+        // Using a generic public domain/royalty-free ringtone placeholder
+        src="https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg" 
+      />
+
       <div className="w-full h-full sm:w-[400px] sm:h-[850px] sm:max-h-[90vh] bg-gradient-to-b from-[#1C1C1E] to-[#000000] sm:rounded-[50px] shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col pt-20 pb-12 sm:border-[8px] border-[#333333]">
         <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[30px] bg-black rounded-b-3xl"></div>
 
