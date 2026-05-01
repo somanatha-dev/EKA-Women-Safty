@@ -214,7 +214,7 @@ function FakeCallOverlay({ onAccept, onReject }) {
   );
 }
 
-function MapControlInner({ filtersHost }) {
+function MapControlInner({ filtersHost, onMetricsUpdate }) {
   const { mapContainerRef, mapRef, markersRef } = useMapContext();
   const [userLocation, setUserLocation] = useState({ lng: 77.5946, lat: 12.9716, bearing: 0 });
   const [routeData, setRouteData] = useState(null);
@@ -227,6 +227,7 @@ function MapControlInner({ filtersHost }) {
   // Risk detection state
   const [isInHighRiskZone, setIsInHighRiskZone] = useState(false);
   const [safetyState, setSafetyState] = useState(SAFETY_STATES.IDLE);
+  const [crowdCount, setCrowdCount] = useState(3); // Simulated nearby users
   const [logs, setLogs] = useState([]);
   const timeoutRef = useRef(null);
 
@@ -532,48 +533,76 @@ function MapControlInner({ filtersHost }) {
     return () => cancelAnimationFrame(rafId);
   }, [routeData]);
 
-  // Risk Zone Detection Logic
+  // Reference to track throttle time
+  const lastPredictionTimeRef = useRef(0);
+
+  // Real-time backend risk prediction & Crowd generation
   useEffect(() => {
-    if (zones.length === 0) return;
-
-    // 1. Find the nearest zone using simple Euclidean distance
-    let minSourceDist = Infinity;
-    let nearestZone = null;
-
-    zones.forEach((z) => {
-      const dLat = z.lat - userLocation.lat;
-      const dLng = z.lng - userLocation.lng;
-      const dist = Math.sqrt(dLat * dLat + dLng * dLng);
-
-      if (dist < minSourceDist) {
-        minSourceDist = dist;
-        nearestZone = z;
-      }
-    });
-
-    // 2. Detection parameters
-    const THRESHOLD = 0.003; // ~300 meters approximation
-    const inside = minSourceDist < THRESHOLD;
-    const isRed = nearestZone?.zone === 'RED' || nearestZone?.zone_type === 'RED';
-
-    // 3. Trigger alert only on entry (avoid repeated triggers)
-    if (inside && isRed) {
-      if (!isInHighRiskZone) {
-        addLog('🚨 Entered high-risk (RED) zone');
-        setIsInHighRiskZone(true);
-        if (safetyState === SAFETY_STATES.IDLE) {
-          setSafetyState(SAFETY_STATES.RISK_DETECTED);
-        }
-      }
-    } else if (!inside || !isRed) {
-      if (isInHighRiskZone) {
-        addLog('✅ Left high-risk area');
-        setIsInHighRiskZone(false);
-        setSafetyState(SAFETY_STATES.IDLE);
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      }
+    const now = Date.now();
+    
+    // Throttle: Only run this logic once per second, rather than debouncing
+    // Debounce was clearing the timer every frame, preventing the API from ever firing while moving.
+    if (now - lastPredictionTimeRef.current < 1000) {
+      return;
     }
-  }, [userLocation, zones, isInHighRiskZone, safetyState]);
+    
+    lastPredictionTimeRef.current = now;
+
+    const runPrediction = async () => {
+      try {
+        // Generate new crowd count (0-10) safely whenever user moves
+        const currentCrowd = Math.floor(Math.random() * 11);
+        setCrowdCount(currentCrowd);
+
+        console.log("Sending:", userLocation.lat, userLocation.lng, currentCrowd);
+
+        const response = await fetch('http://localhost:4000/api/zones/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lat: userLocation.lat,
+            lng: userLocation.lng,
+            crowd: currentCrowd
+          })
+        });
+        
+        if (!response.ok) throw new Error('Prediction request failed');
+        
+        const data = await response.json();
+
+        // Pass real-time metrics up to dashboard UI
+        if (onMetricsUpdate) {
+          onMetricsUpdate({
+            crowd: data.crowd,
+            currentRisk: data.currentRisk,
+            zone: data.zone,
+            safety: data.safety
+          });
+        }
+        
+        // Trigger safety state machine based on backend ML prediction
+        const isRed = data.currentRisk > 0.6;
+        
+        if (isRed && !isInHighRiskZone) {
+          addLog(`🚨 ML Alert: Entered high-risk (${data.zone}) zone`);
+          setIsInHighRiskZone(true);
+          if (safetyState === SAFETY_STATES.IDLE) {
+            setSafetyState(SAFETY_STATES.RISK_DETECTED);
+          }
+        } else if (!isRed && isInHighRiskZone) {
+          addLog(`✅ ML Update: Reached safe area (${data.zone})`);
+          setIsInHighRiskZone(false);
+          setSafetyState(SAFETY_STATES.IDLE);
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        }
+
+      } catch (err) {
+        console.error('Error fetching real-time prediction:', err);
+      }
+    };
+
+    runPrediction();
+  }, [userLocation, isInHighRiskZone, safetyState, onMetricsUpdate]);
 
   // Safety State Machine Transitions
   useEffect(() => {
@@ -798,22 +827,6 @@ function MapControlInner({ filtersHost }) {
         </div>
       )}
 
-      {/* Activity Log Panel */}
-      <div className="absolute bottom-6 right-6 z-50 w-80 max-h-64 bg-slate-900/90 backdrop-blur-md rounded-xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden">
-        <div className="p-3 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Live Activity Log</h3>
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-        </div>
-        <div className="overflow-y-auto p-3 space-y-2 flex-1 scrollbar-hide">
-          {logs.length === 0 && <p className="text-[10px] text-slate-500 text-center py-4">No active threats detected.</p>}
-          {logs.map((log) => (
-            <div key={log.id} className="flex gap-2 items-start animate-in slide-in-from-right-4 duration-300">
-              <span className="text-[9px] font-mono text-slate-500 mt-0.5 whitespace-nowrap">{log.time}</span>
-              <p className="text-[11px] text-slate-200 leading-tight">{log.message}</p>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Fake Call Modal */}
       {(safetyState === SAFETY_STATES.CALL_TRIGGERED || safetyState === SAFETY_STATES.SECOND_CALL) && (
@@ -839,10 +852,10 @@ function MapControlInner({ filtersHost }) {
   );
 }
 
-export default function MapControl({ filtersHost }) {
+export default function MapControl({ filtersHost, onMetricsUpdate }) {
   return (
     <MapProvider>
-      <MapControlInner filtersHost={filtersHost} />
+      <MapControlInner filtersHost={filtersHost} onMetricsUpdate={onMetricsUpdate} />
     </MapProvider>
   );
 }

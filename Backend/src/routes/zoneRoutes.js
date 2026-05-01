@@ -1,8 +1,9 @@
-import express from "express";
-import { getZones } from "../controllers/zoneController.js";
+import express from 'express';
+import { getZones, predictLocation } from '../controllers/zoneController.js';
 
 const router = express.Router();
 
-router.get("/zones", getZones);
+router.get('/', getZones);
+router.post('/predict', predictLocation);
 
 export default router;

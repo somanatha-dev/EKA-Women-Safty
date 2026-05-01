@@ -20,6 +20,11 @@ export function StatCard({ title, value, subValue, icon: Icon, color }) {
       iconBg: 'bg-slate-100 text-slate-600',
       border: 'hover:border-slate-300',
     },
+    emerald: {
+      bg: 'from-white to-emerald-50/30',
+      iconBg: 'bg-emerald-50 text-emerald-600',
+      border: 'hover:border-emerald-200',
+    },
   };
 
   const style = colorStyles[color];
